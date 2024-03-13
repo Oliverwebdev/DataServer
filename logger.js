@@ -1,11 +1,26 @@
-const fs = require('fs');
-const path = require('path');
+const LogEntry = require('./db'); 
 const geoip = require('geoip-lite');
 
-const accessLogStream = fs.createWriteStream(path.join(__dirname, 'access.log'), { flags: 'a' });
-
 function basicLogging(morgan) {
-    return morgan('combined', { stream: accessLogStream });
+    return morgan('combined', (tokens, req, res) => {
+        const logEntry = new LogEntry({
+          timestamp: new Date(),
+          ip: req.ip,
+          method: tokens.method(req, res),
+          url: tokens.url(req, res),
+          userAgent: tokens['user-agent'](req, res),
+          referrer: tokens.referrer(req, res) || 'Keine Referenzseite',
+          deviceType: req.device.type,
+          geoInfo: geoip.lookup(req.ip),
+          cookies: req.cookies
+        });
+
+        logEntry.save(err => {
+          if (err) console.error('Logging to DB error:', err);
+        });
+
+        return null; 
+    });
 }
 
 function detailedLogging(req, res, next) {
@@ -15,10 +30,20 @@ function detailedLogging(req, res, next) {
     const userAgent = req.get('User-Agent');
     const cookies = req.cookies;
 
-    const logEntry = `${new Date().toISOString()} - IP: ${req.ip} - Method: ${req.method} - URL: ${req.url} - User-Agent: ${userAgent} - Referrer: ${referrer} - Device: ${deviceInfo} - GeoIP: ${JSON.stringify(geoInfo)} - Cookies: ${JSON.stringify(cookies)}\n`;
-    
-    fs.appendFile(path.join(__dirname, 'detailed_access.log'), logEntry, (err) => {
-        if (err) console.error('Logging error:', err);
+    const logEntry = new LogEntry({
+      timestamp: new Date(),
+      ip: req.ip,
+      method: req.method,
+      url: req.url,
+      userAgent: userAgent,
+      referrer: referrer,
+      deviceType: deviceInfo,
+      geoInfo: geoInfo,
+      cookies: cookies
+    });
+
+    logEntry.save(err => {
+      if (err) console.error('Logging to DB error:', err);
     });
 
     next();
