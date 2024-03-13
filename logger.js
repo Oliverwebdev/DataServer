@@ -16,8 +16,9 @@ function basicLogging(morgan) {
                 referrer: tokens.referrer(req, res) || 'Keine Referenzseite',
                 deviceType: req.device.type,
                 geoInfo: geoInfo,
-                cookies: req.cookies
-            });
+                cookies: req.cookies,
+            }
+            );
 
             await logEntry.save();
         } catch (err) {
