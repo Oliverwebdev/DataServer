@@ -23,7 +23,7 @@ app.use(rateLimit({
 app.use(basicLogging(morgan));
 initMiddlewares(app);
 app.use(detailedLogging);
-app.set('trust proxy', 1); // Trust first proxy
+app.set('trust proxy', 1); 
 
 app.get('/', (req, res) => {
     res.send('Hallo Welt, dies ist ein Testserver mit erweiterten Logging-Funktionen!');
