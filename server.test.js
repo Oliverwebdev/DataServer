@@ -3,11 +3,10 @@ const request = require('supertest');
 require("dotenv").config();
 
 beforeAll(async () => {
-    const MONGO_TEST_URI = process.env.MONGO_URI;
     if (mongoose.connection.readyState !== 0) {
         await mongoose.disconnect();
     }
-    await mongoose.connect(MONGO_TEST_URI);
+    await mongoose.connect(process.env.MONGO_URI);
 });
 
 afterAll(async () => {
@@ -21,17 +20,29 @@ afterAll(async () => {
     }
 });
 
-beforeEach(async () => {
-    // Versuch, einen existierenden Benutzer zu löschen
-    await request(app).delete('/users/test@example.com');
-});
-
 describe('POST Endpoints', () => {
+    beforeEach(async () => {
+        // Löschen des Benutzers, falls vorhanden
+        try {
+            await request(app).delete('/users/test@example.com');
+        } catch (error) {
+            console.log('No user to delete:', error.message);
+        }
+
+        // Registrieren des Benutzers zu Testzwecken
+        await request(app)
+            .post('/register')
+            .send({
+                email: 'test@example.com',
+                password: '12345678'
+            });
+    });
+
     it('should register a new user', async () => {
         const res = await request(app)
             .post('/register')
             .send({
-                email: 'test@example.com',
+                email: 'newuser@example.com',
                 password: '12345678'
             });
         expect(res.statusCode).toEqual(201);
@@ -39,13 +50,6 @@ describe('POST Endpoints', () => {
     });
 
     it('should login the user', async () => {
-        await request(app)
-            .post('/register')
-            .send({
-                email: 'test@example.com',
-                password: '12345678'
-            });
-
         const res = await request(app)
             .post('/login')
             .send({
@@ -57,30 +61,14 @@ describe('POST Endpoints', () => {
     });
 
     it('should send a forgot password email', async () => {
-        await request(app)
-            .post('/register')
-            .send({
-                email: 'test@example.com',
-                password: '12345678'
-            });
-
         const res = await request(app)
             .post('/forgot-password')
-            .send({
-                email: 'test@example.com'
-            });
+            .send({ email: 'test@example.com' });
         expect(res.statusCode).toEqual(200);
         expect(res.text).toContain('Password reset email sent');
     });
 
     it('should reset the password', async () => {
-        await request(app)
-            .post('/register')
-            .send({
-                email: 'test@example.com',
-                password: '12345678'
-            });
-
         const tokenResponse = await request(app)
             .post('/forgot-password')
             .send({ email: 'test@example.com' });
@@ -88,9 +76,7 @@ describe('POST Endpoints', () => {
 
         const res = await request(app)
             .post(`/reset-password/${token}`)
-            .send({
-                password: 'newpassword123'
-            });
+            .send({ password: 'newpassword123' });
         expect(res.statusCode).toEqual(200);
         expect(res.text).toContain('Password has been reset successfully');
     });
