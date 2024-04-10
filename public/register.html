@@ -3,10 +3,11 @@
 <head>
     <meta charset="UTF-8">
     <title>Registrieren</title>
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
 </head>
 <body>
     <h2>Registrieren</h2>
-    <form action="/register" method="post">
+    <form id="registerForm">
         <div>
             <label for="email">E-Mail:</label>
             <input type="email" id="email" name="email" required>
@@ -18,5 +19,27 @@
         <button type="submit">Registrieren</button>
     </form>
     <a href="/login">Bereits registriert? Anmelden</a>
+
+    <script>
+        document.getElementById('registerForm').addEventListener('submit', function(e) {
+            e.preventDefault(); // Verhindert das Standard-Formularabsende-Verhalten
+
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+
+            axios.post('http://localhost:3000/register', {
+                email: email,
+                password: password
+            })
+            .then(function (response) {
+                console.log('Registrierung erfolgreich:', response);
+                // Hier könnten Sie z.B. eine Erfolgsmeldung anzeigen oder zur Anmeldeseite weiterleiten
+            })
+            .catch(function (error) {
+                console.error('Registrierung fehlgeschlagen:', error);
+                // Hier könnten Sie z.B. eine Fehlermeldung anzeigen
+            });
+        });
+    </script>
 </body>
 </html>

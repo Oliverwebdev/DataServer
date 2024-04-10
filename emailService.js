@@ -1,29 +1,27 @@
 const nodemailer = require('nodemailer');
+require('dotenv').config();
 
 const transporter = nodemailer.createTransport({
     service: 'gmail',
     auth: {
         type: 'OAuth2',
-        user: 'your-email@gmail.com',
-        clientId: 'Your-Google-Client-ID',
-        clientSecret: 'Your-Google-Client-Secret',
-        refreshToken: 'Your-Refresh-Token',
-        accessToken: 'Your-Access-Token', // Optional, wird automatisch aus dem Refresh Token generiert
+        user: process.env.GMAIL_USER,  // Ihre Gmail-Adresse
+        clientId: process.env.GMAIL_CLIENT_ID,
+        clientSecret: process.env.GMAIL_CLIENT_SECRET,
+        refreshToken: process.env.GMAIL_REFRESH_TOKEN,
     }
 });
 
-transporter.sendMail({
-    from: 'your-email@gmail.com',
-    to: 'recipient@example.com',
-    subject: 'Hello from Nodemailer!',
-    text: 'Hello from Nodemailer using Gmail and OAuth2!',
-}, (err, info) => {
-    if (err) {
-        console.error('Error sending email:', err);
-    } else {
+// Beispiel für das Senden einer E-Mail
+const sendEmail = async (mailOptions) => {
+    try {
+        const info = await transporter.sendMail(mailOptions);
         console.log('Email sent:', info.response);
+        return info;
+    } catch (err) {
+        console.error('Error sending email:', err);
+        throw err;
     }
-});
-
+}
 
 module.exports = { sendEmail };

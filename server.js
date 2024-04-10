@@ -1,4 +1,3 @@
-// server.js
 require("dotenv").config();
 const express = require("express");
 const mongoose = require("mongoose");
@@ -10,7 +9,6 @@ const jwt = require("jsonwebtoken");
 const nodemailer = require("nodemailer");
 const crypto = require("crypto");
 const app = express();
-const request = require("supertest");
 
 // Middleware
 app.use(express.json());
@@ -21,25 +19,21 @@ app.use((req, res, next) => {
   next();
 });
 
-
+// Database connection
 async function connectToDatabase() {
-  const dbURI = process.env.MONGO_URI; // Standard URI für Produktionsdatenbank
+  const dbURI = process.env.MONGO_URI;
   try {
-    // Überprüfen, ob bereits eine Verbindung besteht
     if (mongoose.connection.readyState === 1) {
       if (mongoose.connection.client.s.url !== dbURI) {
-        // Wenn verbunden, aber falsche DB, Verbindung trennen
         await mongoose.disconnect();
       } else {
-        // Wenn bereits zur richtigen DB verbunden, nichts tun
         console.log("Already connected to MongoDB");
         return;
       }
     }
-
-    // Verbindung zur Datenbank herstellen
     await mongoose.connect(dbURI, {
-      
+      useNewUrlParser: true,
+      useUnifiedTopology: true
     });
     console.log("MongoDB Connected");
   } catch (err) {
@@ -47,7 +41,6 @@ async function connectToDatabase() {
   }
 }
 
-// Verbindung initialisieren
 connectToDatabase();
 
 // User model
@@ -57,44 +50,72 @@ const userSchema = new mongoose.Schema({
     required: true,
     unique: true,
     trim: true,
-    lowercase: true,
+    lowercase: true
   },
-  password: { type: String, required: true },
-  verified: { type: Boolean, default: false },
-  dAdmin: { type: Boolean, default: true },
+  password: {
+    type: String,
+    required: true
+  },
+  verified: {
+    type: Boolean,
+    default: false
+  },
+  dAdmin: {
+    type: Boolean,
+    default: false
+  }
 });
-userSchema.pre("save", async function (next) {
+
+userSchema.pre("save", async function(next) {
   if (this.isModified("password")) {
     this.password = await bcrypt.hash(this.password, 8);
   }
   next();
 });
-userSchema.methods.isCorrectPassword = async function (password) {
+
+userSchema.methods.isCorrectPassword = async function(password) {
   return bcrypt.compare(password, this.password);
 };
+
 const User = mongoose.model("User", userSchema);
 
-// PasswordResetToken model
+// Password Reset Token model
 const passwordResetTokenSchema = new mongoose.Schema({
-  userId: { type: mongoose.Schema.Types.ObjectId, required: true, ref: "User" },
-  token: { type: String, required: true },
-  createdAt: { type: Date, default: Date.now, expires: 3600 }, // Token expires after 1 hour
+  userId: {
+    type: mongoose.Schema.Types.ObjectId,
+    required: true,
+    ref: "User"
+  },
+  token: {
+    type: String,
+    required: true
+  },
+  createdAt: {
+    type: Date,
+    default: Date.now,
+    expires: 3600 // 1 hour
+  }
 });
-const PasswordResetToken = mongoose.model(
-  "PasswordResetToken",
-  passwordResetTokenSchema
-);
+
+const PasswordResetToken = mongoose.model("PasswordResetToken", passwordResetTokenSchema);
 
 // Email transporter setup
 const transporter = nodemailer.createTransport({
   service: "gmail",
-  auth: { user: process.env.EMAIL_USERNAME, pass: process.env.EMAIL_PASSWORD },
+  auth: {
+    user: process.env.EMAIL_USERNAME,
+    pass: process.env.EMAIL_PASSWORD
+  }
 });
 
-// Registration endpoint (post request)
+// Registration endpoint
 app.post("/register", async (req, res) => {
+  console.log("Received data:", req.body);
+  const { email, password } = req.body;
+  if (!email || !password) {
+    return res.status(400).send("Email and password are required");
+  }
   try {
-    const { email, password } = req.body;
     const user = new User({ email, password });
     await user.save();
     res.status(201).send("User registered successfully");
@@ -105,14 +126,14 @@ app.post("/register", async (req, res) => {
 
 // Login endpoint
 app.post("/login", async (req, res) => {
+  const { email, password } = req.body;
   try {
-    const { email, password } = req.body;
     const user = await User.findOne({ email });
     if (!user || !(await user.isCorrectPassword(password))) {
       return res.status(401).send("Invalid credentials");
     }
     const token = jwt.sign({ userId: user._id }, process.env.JWT_SECRET, {
-      expiresIn: "1d",
+      expiresIn: "1d"
     });
     res.cookie("jwt", token, { httpOnly: true, secure: true });
     res.status(200).send("User logged in successfully");
@@ -135,7 +156,7 @@ app.post("/forgot-password", async (req, res) => {
     from: process.env.EMAIL_USERNAME,
     to: user.email,
     subject: "Password Reset",
-    text: `Please use the following link to reset your password: http://${req.headers.host}/reset-password/${token}`,
+    text: `Please use the following link to reset your password: http://${req.headers.host}/reset-password/${token}`
   };
   transporter.sendMail(mailOptions, (err, info) => {
     if (err) {
@@ -148,28 +169,20 @@ app.post("/forgot-password", async (req, res) => {
 
 // Reset password endpoint
 app.post("/reset-password/:token", async (req, res) => {
-  try {
-    const { token } = req.params;
-    const { password } = req.body;
-    const passwordToken = await PasswordResetToken.findOne({ token }).populate(
-      "userId"
-    );
-    if (!passwordToken) {
-      return res.status(400).send("Invalid or expired token");
-    }
-    const user = passwordToken.userId;
-    user.password = password;
-    await user.save();
-    await PasswordResetToken.deleteMany({ userId: user._id }); // Cleanup all tokens
-    res.status(200).send("Password has been reset successfully");
-  } catch (error) {
-    res.status(500).send("Reset password error: " + error.message);
+  const { token } = req.params;
+  const { password } = req.body;
+  const passwordToken = await PasswordResetToken.findOne({ token }).populate("userId");
+  if (!passwordToken) {
+    return res.status(400).send("Invalid or expired token");
   }
+  const user = passwordToken.userId;
+  user.password = password;
+  await user.save();
+  await PasswordResetToken.deleteMany({ userId: user._id });
+  res.status(200).send("Password has been reset successfully");
 });
 
-// get endpoints
-
-// Static pages endpoints
+// Static and template endpoints
 app.get("/", (req, res) => {
   res.sendFile(__dirname + "/public/index.html");
 });
