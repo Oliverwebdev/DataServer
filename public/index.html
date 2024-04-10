@@ -12,5 +12,32 @@
         <li><a href="/register">Registrieren</a></li>
         <li><a href="/forgot-password">Passwort vergessen</a></li>
     </ul>
+
+    <div id="welcomeMessage">Lädt...</div>
+
+    <script>
+        document.addEventListener("DOMContentLoaded", function() {
+            const jwt = getCookie("jwt");
+            if (jwt) {
+                document.getElementById("welcomeMessage").innerHTML = "Sie sind eingeloggt!";
+            } else {
+                document.getElementById("welcomeMessage").innerHTML = "Sie sind nicht eingeloggt!";
+                // Optional: Weiterleitung zur Login-Seite
+                // window.location.href = '/login';
+            }
+        });
+
+        function getCookie(name) {
+            let cookieArr = document.cookie.split(";");
+            for(let i = 0; i < cookieArr.length; i++) {
+                let cookiePair = cookieArr[i].split("=");
+                if(name == cookiePair[0].trim()) {
+                    return decodeURIComponent(cookiePair[1]);
+                }
+            }
+            return null;
+        }
+    </script>
 </body>
+
 </html>

@@ -1,23 +1,61 @@
 <!DOCTYPE html>
 <html lang="de">
-<head>
-    <meta charset="UTF-8">
+  <head>
+    <meta charset="UTF-8" />
     <title>Login</title>
-</head>
-<body>
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+  </head>
+  <body>
     <h2>Login</h2>
-    <form action="/login" method="post">
-        <div>
-            <label for="email">E-Mail:</label>
-            <input type="email" id="email" name="email" required>
-        </div>
-        <div>
-            <label for="password">Passwort:</label>
-            <input type="password" id="password" name="password" required>
-        </div>
-        <button type="submit">Anmelden</button>
+    <form id="loginForm">
+      <div>
+        <label for="email">E-Mail:</label>
+        <input
+          autocomplete="email"
+          type="email"
+          id="email"
+          name="email"
+          required
+        />
+      </div>
+      <div>
+        <label for="password">Passwort:</label>
+        <input
+          autocomplete="current-password"
+          type="password"
+          id="password"
+          name="password"
+          required
+        />
+      </div>
+      <button type="submit">Anmelden</button>
     </form>
     <a href="/forgot-password">Passwort vergessen?</a>
     <a href="/register">Registrieren</a>
-</body>
+
+    <script>
+      document
+        .getElementById("loginForm")
+        .addEventListener("submit", function (e) {
+          e.preventDefault(); // Verhindert das Standardverhalten des Formulars
+
+          const email = document.getElementById("email").value;
+          const password = document.getElementById("password").value;
+
+          axios
+            .post("/login", {
+              email: email,
+              password: password,
+            })
+            .then(function (response) {
+              console.log("Login erfolgreich:", response);
+              window.location.href = "/";
+            })
+            .catch(function (error) {
+              console.error("Login fehlgeschlagen:", error);
+              alert("Login fehlgeschlagen: Überprüfen Sie Ihre Eingaben");
+            });
+        });
+    </script>
+  </body>
 </html>

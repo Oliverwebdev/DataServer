@@ -126,21 +126,31 @@ app.post("/register", async (req, res) => {
 
 // Login endpoint
 app.post("/login", async (req, res) => {
-  const { email, password } = req.body;
-  try {
-    const user = await User.findOne({ email });
-    if (!user || !(await user.isCorrectPassword(password))) {
-      return res.status(401).send("Invalid credentials");
+    const { email, password } = req.body;
+    console.log("Attempting login for:", email);
+    try {
+      const user = await User.findOne({ email });
+      if (!user) {
+        console.log("No user found with that email");
+        return res.status(401).send("Invalid credentials");
+      }
+      const isMatch = await user.isCorrectPassword(password);
+      if (!isMatch) {
+        console.log("Password does not match");
+        return res.status(401).send("Invalid credentials");
+      }
+      const token = jwt.sign({ userId: user._id }, process.env.JWT_SECRET, {
+        expiresIn: "1d"
+      });
+      res.cookie("jwt", token, { httpOnly: true, secure: true });
+      console.log("User logged in successfully");
+      res.status(200).send("User logged in successfully");
+    } catch (error) {
+      console.log("Login error:", error);
+      res.status(500).send("Login error: " + error.message);
     }
-    const token = jwt.sign({ userId: user._id }, process.env.JWT_SECRET, {
-      expiresIn: "1d"
-    });
-    res.cookie("jwt", token, { httpOnly: true, secure: true });
-    res.status(200).send("User logged in successfully");
-  } catch (error) {
-    res.status(500).send("Login error: " + error.message);
-  }
-});
+  });
+  
 
 // Forgot password endpoint
 app.post("/forgot-password", async (req, res) => {
