@@ -19,11 +19,16 @@
         document.addEventListener("DOMContentLoaded", function() {
             const jwt = getCookie("jwt");
             if (jwt) {
-                document.getElementById("welcomeMessage").innerHTML = "Sie sind eingeloggt!";
+                // Beispiel: JWT Token enthält {"user": "Max Mustermann"}
+                try {
+                    const payload = JSON.parse(atob(jwt.split('.')[1])); // Dekodiert den Payload des JWT
+                    const username = payload.user; // Annahme, dass der Payload ein "user"-Feld enthält
+                    document.getElementById("welcomeMessage").innerHTML = "Hallo, " + username + "!";
+                } catch (e) {
+                    document.getElementById("welcomeMessage").innerHTML = "Ungültiges Token!";
+                }
             } else {
-                document.getElementById("welcomeMessage").innerHTML = "Sie sind nicht eingeloggt!";
-                // Optional: Weiterleitung zur Login-Seite
-                // window.location.href = '/login';
+                document.getElementById("welcomeMessage").innerHTML = "Hallo, User!";
             }
         });
 
@@ -31,7 +36,7 @@
             let cookieArr = document.cookie.split(";");
             for(let i = 0; i < cookieArr.length; i++) {
                 let cookiePair = cookieArr[i].split("=");
-                if(name == cookiePair[0].trim()) {
+                if(name === cookiePair[0].trim()) {
                     return decodeURIComponent(cookiePair[1]);
                 }
             }
@@ -39,5 +44,4 @@
         }
     </script>
 </body>
-
 </html>

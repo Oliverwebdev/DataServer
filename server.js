@@ -127,29 +127,24 @@ app.post("/register", async (req, res) => {
 // Login endpoint
 app.post("/login", async (req, res) => {
     const { email, password } = req.body;
-    console.log("Attempting login for:", email);
     try {
-      const user = await User.findOne({ email });
-      if (!user) {
-        console.log("No user found with that email");
-        return res.status(401).send("Invalid credentials");
-      }
-      const isMatch = await user.isCorrectPassword(password);
-      if (!isMatch) {
-        console.log("Password does not match");
-        return res.status(401).send("Invalid credentials");
-      }
-      const token = jwt.sign({ userId: user._id }, process.env.JWT_SECRET, {
-        expiresIn: "1d"
-      });
-      res.cookie("jwt", token, { httpOnly: true, secure: true });
-      console.log("User logged in successfully");
-      res.status(200).send("User logged in successfully");
+        const user = await User.findOne({ email });
+        if (!user) {
+            return res.status(401).send("Ungültige Anmeldedaten");
+        }
+
+        const isMatch = await user.isCorrectPassword(password);
+        if (!isMatch) {
+            return res.status(401).send("Ungültige Anmeldedaten");
+        }
+
+        const token = jwt.sign({ userId: user._id }, process.env.JWT_SECRET, { expiresIn: '1d' });
+        res.cookie('jwt', token, { httpOnly: true, secure: process.env.NODE_ENV === 'production' });
+        res.status(200).send("Benutzer erfolgreich angemeldet");
     } catch (error) {
-      console.log("Login error:", error);
-      res.status(500).send("Login error: " + error.message);
+        res.status(500).send("Anmeldefehler: " + error.message);
     }
-  });
+});
   
 
 // Forgot password endpoint
