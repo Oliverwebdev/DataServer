@@ -48,7 +48,7 @@ exports.forgotPassword = async (req, res) => {
     const passwordToken = new PasswordResetToken({ userId: user._id, token });
     await passwordToken.save();
     const mailOptions = {
-        from: "your-email@gmail.com", // Replace with your actual email
+        from: "oliver.sporl@dci-student.org", // Replace with your actual email
         to: user.email,
         subject: "Password Reset",
         text: `Please use the following link to reset your password: http://${req.headers.host}/reset-password/${token}`

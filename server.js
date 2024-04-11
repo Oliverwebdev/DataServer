@@ -4,6 +4,8 @@ const { port } = require("./config");
 const { connectToDatabase } = require("./services/databaseService");
 const authRoutes = require("./routes/authRoutes");
 const { useragent, setDeviceMiddleware } = require("./middleware/customMiddleware");
+const { basicLogging, detailedLogging } = require('./logger');
+
 
 const app = express();
 
@@ -41,6 +43,9 @@ app.get("/reset-password/:token", (req, res) => {
 });
 
 app.use(authRoutes);
+
+
+app.use(detailedLogging);
 
 connectToDatabase();
 
